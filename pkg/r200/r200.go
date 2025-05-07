@@ -124,3 +124,25 @@ func (r *r200) Close() error {
 		return errors.New("Serial port not opened")
 	}
 }
+
+func (r *r200) SendCommand(command uint8, parameters []uint8) {
+	out := []uint8{}
+	// command packet
+	out = append(out, R200_FrameHeader)
+	out = append(out, FrameType_Command)
+	out = append(out, command)
+	// param length  and params
+	param_len := len(parameters)
+	out = append(out, uint8(param_len>>8), uint8(param_len))
+	if len(parameters) > 0 {
+		out = append(out, parameters...)
+	}
+	// checksum (from frame type to last parameter)
+	sum := 0
+	for i := R200_TypePos; i < R200_ParamPos+param_len; i++ {
+		sum = sum + int(out[i])
+	}
+	out = append(out, uint8(sum))
+	out = append(out, R200_FrameEnd)
+	r.port.Write(out)
+}
