@@ -1,7 +1,10 @@
 package r200
 
 import (
+	"encoding/hex"
 	"errors"
+	"fmt"
+	"time"
 
 	"go.bug.st/serial"
 )
@@ -65,7 +68,7 @@ type R200Response struct {
 	Command    uint8
 	Checksum   uint8
 	ChecksumOK bool
-	params     []uint8
+	Params     []uint8
 }
 
 type R200PoolResponse struct {
@@ -88,6 +91,8 @@ func (r *R200PoolResponse) Parse(params []uint8) error {
 
 type R200 interface {
 	Close() error
+	SendCommand(uint8, []uint8) error
+	Receive() ([]R200Response, error)
 }
 
 type r200 struct {
@@ -95,7 +100,7 @@ type r200 struct {
 	debug bool
 }
 
-func New(port string, speed int, debug bool) (*r200, error) {
+func New(port string, speed int, debug bool) (R200, error) {
 	r := r200{debug: debug}
 
 	// prepare port
@@ -112,7 +117,7 @@ func New(port string, speed int, debug bool) (*r200, error) {
 	if err != nil {
 		return nil, err
 	}
-
+	r.port.SetReadTimeout(time.Second * 1)
 	return &r, nil
 }
 
@@ -125,7 +130,7 @@ func (r *r200) Close() error {
 	}
 }
 
-func (r *r200) SendCommand(command uint8, parameters []uint8) {
+func (r *r200) SendCommand(command uint8, parameters []uint8) error {
 	out := []uint8{}
 	// command packet
 	out = append(out, R200_FrameHeader)
@@ -144,5 +149,63 @@ func (r *r200) SendCommand(command uint8, parameters []uint8) {
 	}
 	out = append(out, uint8(sum))
 	out = append(out, R200_FrameEnd)
-	r.port.Write(out)
+	if r.debug {
+		fmt.Printf("Sent: %s\n", hex.EncodeToString(out))
+	}
+	_, err := r.port.Write(out)
+	return err
+}
+
+func (r *r200) Receive() ([]R200Response, error) {
+	var responses []R200Response
+
+	// try to read all data
+	var buffer []uint8
+	temp := make([]uint8, 512)
+	num, err := r.port.Read(temp)
+	buffer = append(buffer, temp[:num]...)
+	if err != nil {
+		return nil, err
+	}
+	for num > 0 {
+		num, err = r.port.Read(temp)
+		if err != nil {
+			return nil, err
+		}
+		buffer = append(buffer, temp[:num]...)
+	}
+
+	// ok, try to parse all responses
+	for len(buffer) > 0 {
+		if r.debug {
+			fmt.Printf("Buffer: %s\n", hex.EncodeToString(buffer))
+		}
+		resp := R200Response{}
+		var param_len uint16 = 0
+		if buffer[R200_HeaderPos] == R200_FrameHeader {
+			// looks like a packet, but there can be seveal ones
+			// check frame type
+			if buffer[R200_TypePos] == FrameType_Response || buffer[R200_TypePos] == FrameType_Notification {
+				resp.Type = buffer[R200_TypePos]
+				resp.Command = buffer[R200_CommandPos]
+				// ok, get param len and params
+				param_len = (uint16(buffer[R200_ParamLengthMSBPos]) << 8) + uint16(buffer[R200_ParamLengthLSBPos])
+				resp.Params = append(resp.Params, buffer[R200_ParamPos:R200_ParamPos+param_len]...)
+				// checksum
+				sum := 0
+				for i := R200_TypePos; i < R200_ParamPos+int(param_len); i++ {
+					sum += int(buffer[i])
+				}
+				if uint8(sum) == buffer[R200_ParamPos+param_len] {
+					resp.ChecksumOK = true
+					resp.Checksum = uint8(sum)
+				}
+				responses = append(responses, resp)
+			}
+		}
+		// ok, remove this packet from array
+		buffer = buffer[R200_ParamPos+param_len+2:]
+	}
+
+	return responses, nil
 }
