@@ -237,8 +237,7 @@ func (r *r200) ReadTags() ([]R200PoolResponse, error) {
 	if err != nil {
 		return nil, err
 	}
-	for i, r := range resp {
-		fmt.Printf("%d:\n", i+1)
+	for _, r := range resp {
 		switch r.Command {
 		case CMD_SinglePollInstruction:
 			item := R200PoolResponse{}
