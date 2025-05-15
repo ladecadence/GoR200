@@ -228,3 +228,28 @@ func (r *r200) Receive() ([]R200Response, error) {
 
 	return responses, nil
 }
+
+func (r *r200) ReadTags() ([]R200PoolResponse, error) {
+	pool := []R200PoolResponse{}
+	r.SendCommand(CMD_MultiplePollInstruction, []uint8{0x22, 0x00, 0x0a})
+	resp, err := r.Receive()
+	if err != nil {
+		return nil, err
+	}
+	for i, r := range resp {
+		fmt.Printf("%d:\n", i+1)
+		switch r.Command {
+		case CMD_SinglePollInstruction:
+			item := R200PoolResponse{}
+			item.Parse(r.Params)
+			pool = append(pool, item)
+		case CMD_ExecutionFailure:
+			errorData := R200ErrorResponse{Error: r.Params}
+			errorData.Parse()
+			err = errors.New(fmt.Sprintf("Error reading RFID: %s", errorData.Message))
+		default:
+			err = errors.New("Undefined error")
+		}
+	}
+	return pool, err
+}
