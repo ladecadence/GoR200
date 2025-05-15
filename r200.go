@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"slices"
 	"time"
 
 	"go.bug.st/serial"
@@ -237,12 +238,18 @@ func (r *r200) ReadTags() ([]R200PoolResponse, error) {
 	if err != nil {
 		return nil, err
 	}
+	// we can't compare the full struct, so compare the EDC hex string
+	ids := []string{}
 	for _, r := range resp {
 		switch r.Command {
 		case CMD_SinglePollInstruction:
 			item := R200PoolResponse{}
 			item.Parse(r.Params)
-			pool = append(pool, item)
+			// compare EPCs
+			if !slices.Contains(ids, hex.EncodeToString(item.EPC)) {
+				ids = append(ids, hex.EncodeToString(item.EPC))
+				pool = append(pool, item)
+			}
 		case CMD_ExecutionFailure:
 			errorData := R200ErrorResponse{Error: r.Params}
 			errorData.Parse()
