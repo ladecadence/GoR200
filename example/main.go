@@ -20,32 +20,20 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	//rfid.SendCommand(r200.CMD_SetWorkArea, []uint8{0x02})
-	rfid.SendCommand(r200.CMD_MultiplePollInstruction, []uint8{0x22, 0x00, 0x0a})
-	resp, err := rfid.Receive()
+	data, err := rfid.ReadTags()
+	if err != nil {
+		fmt.Println(err.Error())
+	}
 	tuppers := []int{}
-	for i, r := range resp {
-		fmt.Printf("%d:\n", i+1)
-		switch r.Command {
-		case r200.CMD_SinglePollInstruction:
-			pool := r200.R200PoolResponse{}
-			pool.Parse(r.Params)
-			fmt.Printf("\tPC: 0x%0x\n", pool.PC)
-			fmt.Printf("\tEPC: %s\n", hex.EncodeToString(pool.EPC))
-			fmt.Printf("\tCRC: 0x%0x\n", pool.CRC)
-			if val, ok := registered[hex.EncodeToString(pool.EPC)]; ok {
-				fmt.Printf("\tTupper %d\n", val)
-				if !slices.Contains(tuppers, val) {
-					tuppers = append(tuppers, val)
-				}
+	for _, d := range data {
+		fmt.Printf("\tPC: 0x%0x\n", d.PC)
+		fmt.Printf("\tEPC: %s\n", hex.EncodeToString(d.EPC))
+		fmt.Printf("\tCRC: 0x%0x\n", d.CRC)
+		if val, ok := registered[hex.EncodeToString(d.EPC)]; ok {
+			fmt.Printf("\tTupper %d\n", val)
+			if !slices.Contains(tuppers, val) {
+				tuppers = append(tuppers, val)
 			}
-		case r200.CMD_ExecutionFailure:
-			err := r200.R200ErrorResponse{Error: r.Params}
-			fmt.Printf("\tError: %s\n", err.Parse())
-		default:
-			fmt.Printf("\tParams: %s\n", hex.EncodeToString(r.Params))
-			fmt.Printf("\tChecksum: 0x%0x\n", r.Checksum)
-			fmt.Printf("\tChecksum OK: %t\n", r.ChecksumOK)
 		}
 	}
 	fmt.Printf("Tuppers detected: %v\n", tuppers)
