@@ -112,6 +112,7 @@ type R200 interface {
 	Close() error
 	SendCommand(uint8, []uint8) error
 	Receive() ([]R200Response, error)
+	ReadTags() ([]R200PoolResponse, error)
 }
 
 type r200 struct {
