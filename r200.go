@@ -89,6 +89,25 @@ func (r *R200PoolResponse) Parse(params []uint8) error {
 	return nil
 }
 
+type R200ErrorResponse struct {
+	Error   []uint8
+	Message string
+}
+
+func (r *R200ErrorResponse) Parse() string {
+	switch r.Error[0] {
+	case ERR_InventoryFail:
+		r.Message = "No tags detected"
+	case ERR_CommandError:
+		r.Message = "Can't execute command"
+	case ERR_ReadFail:
+		r.Message = "Read failed"
+	default:
+		r.Message = fmt.Sprintf("Error: 0x%0x", r.Error)
+	}
+	return r.Message
+}
+
 type R200 interface {
 	Close() error
 	SendCommand(uint8, []uint8) error
