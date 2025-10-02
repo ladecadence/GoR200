@@ -254,7 +254,7 @@ func (r *r200) ReadTags() ([]R200PoolResponse, error) {
 		case CMD_ExecutionFailure:
 			errorData := R200ErrorResponse{Error: r.Params}
 			errorData.Parse()
-			err = errors.New(fmt.Sprintf("Error reading RFID: %s", errorData.Message))
+			err = fmt.Errorf("Error reading RFID: %s", errorData.Message)
 		default:
 			err = errors.New("Undefined error")
 		}
