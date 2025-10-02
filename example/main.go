@@ -16,7 +16,7 @@ var registered = map[string]int{
 }
 
 func main() {
-	rfid, err := r200.New("/dev/ttyUSB0", 115200, false)
+	rfid, err := r200.New("/dev/ttyUSB0", 115200, 10, false)
 	if err != nil {
 		panic(err)
 	}
