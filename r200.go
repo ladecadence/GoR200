@@ -117,12 +117,13 @@ type R200 interface {
 }
 
 type r200 struct {
-	port  serial.Port
-	debug bool
+	port      serial.Port
+	num_reads uint8
+	debug     bool
 }
 
-func New(port string, speed int, debug bool) (R200, error) {
-	r := r200{debug: debug}
+func New(port string, speed int, num_reads uint8, debug bool) (R200, error) {
+	r := r200{debug: debug, num_reads: num_reads}
 
 	// prepare port
 	mode := &serial.Mode{
@@ -233,7 +234,7 @@ func (r *r200) Receive() ([]R200Response, error) {
 
 func (r *r200) ReadTags() ([]R200PoolResponse, error) {
 	pool := []R200PoolResponse{}
-	r.SendCommand(CMD_MultiplePollInstruction, []uint8{0x22, 0x00, 0x0a})
+	r.SendCommand(CMD_MultiplePollInstruction, []uint8{0x22, 0x00, r.num_reads})
 	resp, err := r.Receive()
 	if err != nil {
 		return nil, err
