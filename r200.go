@@ -62,6 +62,23 @@ const (
 	ERR_WriteFail     = 0x10
 	ERR_LockFail      = 0x13
 	ERR_KillFail      = 0x12
+
+	MIX_Gain_0dB  = 0x00
+	MIX_Gain_3dB  = 0x01
+	MIX_Gain_6dB  = 0x02
+	MIX_Gain_9dB  = 0x03
+	MIX_Gain_12dB = 0x04
+	MIX_Gain_15dB = 0x05
+	MIX_Gain_16dB = 0x06
+
+	IF_AMP_Gain_12dB = 0x00
+	IF_AMP_Gain_18dB = 0x01
+	IF_AMP_Gain_21dB = 0x02
+	IF_AMP_Gain_24dB = 0x03
+	IF_AMP_Gain_27dB = 0x04
+	IF_AMP_Gain_30dB = 0x05
+	IF_AMP_Gain_36dB = 0x06
+	IF_AMP_Gain_40dB = 0x07
 )
 
 type R200Response struct {
