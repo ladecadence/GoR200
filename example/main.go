@@ -3,38 +3,39 @@ package main
 import (
 	"encoding/hex"
 	"fmt"
-	"slices"
 
 	r200 "github.com/ladecadence/GoR200"
 )
 
-var registered = map[string]int{
-	"e28069150000501d63e8f8e4": 1,
-	"e28069150000501d63e900e4": 2,
-	"e28069150000401d63e904e4": 3,
-	"e28069150000401d63e8fce4": 4,
-}
+var (
+	rfidGainConfig = []uint8{r200.MIX_Gain_3dB, r200.IF_AMP_Gain_36dB, 0x00, 0xB0}
+)
 
 func main() {
 	rfid, err := r200.New("/dev/ttyUSB0", 115200, 10, false)
 	if err != nil {
 		panic(err)
 	}
+	// configure RFID demodulator
+	err = rfid.SendCommand(r200.CMD_SetReceiverDemodulatorParameters, rfidGainConfig)
+	if err != nil {
+		panic(err)
+	}
+	rcv, err := rfid.Receive()
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("%v\n", rcv)
 	data, err := rfid.ReadTags()
 	if err != nil {
 		fmt.Println(err.Error())
 	}
-	tuppers := []int{}
+	tuppers := 0
 	for _, d := range data {
 		fmt.Printf("\tPC: 0x%0x\n", d.PC)
 		fmt.Printf("\tEPC: %s\n", hex.EncodeToString(d.EPC))
 		fmt.Printf("\tCRC: 0x%0x\n", d.CRC)
-		if val, ok := registered[hex.EncodeToString(d.EPC)]; ok {
-			fmt.Printf("\tTupper %d\n", val)
-			if !slices.Contains(tuppers, val) {
-				tuppers = append(tuppers, val)
-			}
-		}
+		tuppers++
 	}
-	fmt.Printf("Tuppers detected: %v\n", tuppers)
+	fmt.Printf("Tuppers detected: %d\n", tuppers)
 }
