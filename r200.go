@@ -39,6 +39,7 @@ const (
 	CMD_GetQueryParameters               = 0x0D
 	CMD_SetQueryParameters               = 0x0E
 	CMD_SetWorkArea                      = 0x07
+	CMD_GetWorkArea                      = 0x08
 	CMD_SetWorkingChannel                = 0xAB
 	CMD_GetWorkingChannel                = 0xAA
 	CMD_SetAutoFrequencyHopping          = 0xAD
